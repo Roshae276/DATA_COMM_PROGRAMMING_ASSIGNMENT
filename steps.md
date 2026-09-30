@@ -44,5 +44,6 @@
     return data
 
   ```
-  
+  - ab ham chahte hai ki consecutive 4 zeros aur 8 zeros ki sequence banana kyuki vo hame scrambling mai chahiye
+  - aik aur function banayenge
   
