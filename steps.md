@@ -46,4 +46,23 @@
   ```
   - ab ham chahte hai ki consecutive 4 zeros aur 8 zeros ki sequence banana kyuki vo hame scrambling mai chahiye
   - aik aur function banayenge
+  - jisme ham zero_count ki hame kitne zero chahiye aur length daalenge
+  - ab hamara function kya krega ki jo pehle hamne function banaya tha na usko reuse karke jitni length ham input denge us length ka random seq generate karega uske baad 
+  - ye ek position select karega random library ka use karke aur us position se aage zero_count tak 0 daalta jaega
+  - ab hamari python string immutable hoti hai to usko ham pehle list me convert krenge aur fir usme 0 daalenge fir se usko string me convert kar denge
+  
+  ```
+  def generate_random_data_with_zeros(length, zero_count):
+    data = generate_random_data(length)
+
+    position = random.randint(0,length-zero_count)
+    data = list(data)
+    
+    for i in range(zero_count):
+        data[position+i] = "0"
+        
+    data = "".join(data)
+    
+    return data
+  ```
   
