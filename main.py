@@ -1,6 +1,8 @@
+
 from data_generator import (
     generate_random_data,
-    find_longest_palindrome
+    generate_data_with_zeros,
+    find_longest_palindrome,
 )
 
 from line_coding import (
@@ -8,68 +10,275 @@ from line_coding import (
     encode_nrz_i,
     encode_manchester,
     encode_differential_manchester,
-    encode_ami
+    encode_ami,
 )
 
-from scrambling import encode_b8zs, encode_hdb3
+from scrambling import (
+    encode_b8zs,
+    encode_hdb3,
+    decode_b8zs,
+    decode_hdb3,
+)
+
 from signal_plotter import plot_signal
 
+from decoder import (
+    decode_nrz_l,
+    decode_nrz_i,
+    decode_manchester,
+    decode_differential_manchester,
+    decode_ami,
+)
 
-encoders = {
-    "NRZ-L": encode_nrz_l,
-    "NRZ-I": encode_nrz_i,
-    "MANCHESTER": encode_manchester,
-    "DIFFERENTIAL MANCHESTER": encode_differential_manchester,
-    "AMI": encode_ami,
-    "B8ZS": encode_b8zs,
-    "HDB3": encode_hdb3
+from modulation import (
+    delta_modulation_encode,
+    delta_modulation_decode,
+    plot_delta_modulation,
+)
+
+
+ENCODERS = {
+    "1": ("NRZ-L", encode_nrz_l),
+    "2": ("NRZ-I", encode_nrz_i),
+    "3": ("Manchester", encode_manchester),
+    "4": ("Differential Manchester", encode_differential_manchester),
+    "5": ("AMI", encode_ami),
 }
 
-data_sources = {
-    "1": lambda: generate_random_data(16),
-    "2": lambda: input("Enter binary data: ").strip()
+DECODERS = {
+    "NRZ-L": decode_nrz_l,
+    "NRZ-I": decode_nrz_i,
+    "MANCHESTER": decode_manchester,
+    "DIFFERENTIAL MANCHESTER": decode_differential_manchester,
+    "AMI": decode_ami,
+    "B8ZS": decode_b8zs,
+    "HDB3": decode_hdb3,
+}
+
+SCRAMBLERS = {
+    "1": ("B8ZS", encode_b8zs),
+    "2": ("HDB3", encode_hdb3),
 }
 
 
-def main():
-    print("Digital Signal Encoder and Decoder")
+def ask_yes_no(prompt):
+    while True:
+        answer = input(prompt).strip().lower()
+
+        if answer in ("yes", "y"):
+            return True
+        if answer in ("no", "n"):
+            return False
+
+        print("Please enter yes or no.")
+
+
+def get_digital_data():
+    print("\nChoose digital data source:")
     print("1. Generate random data")
-    print("2. Enter binary data")
+    print("2. Generate data with four consecutive zeros")
+    print("3. Generate data with eight consecutive zeros")
+    print("4. Enter binary data manually")
 
     choice = input("Choose an option: ").strip()
 
-    get_data = data_sources.get(choice)
+    if choice == "4":
+        data = input("Enter binary data: ").strip()
 
-    if get_data is None:
+    elif choice in ("1", "2", "3"):
+        try:
+            length = int(input("Enter sequence length: "))
+
+            if length <= 0:
+                print("Length must be positive.")
+                return None
+
+            if choice == "1":
+                data = generate_random_data(length)
+            else:
+                zero_count = 4 if choice == "2" else 8
+
+                if length < zero_count:
+                    print(f"Length must be at least {zero_count}.")
+                    return None
+
+                data = generate_data_with_zeros(length, zero_count)
+
+        except ValueError:
+            print("Please enter a valid integer length.")
+            return None
+
+    else:
         print("Invalid option.")
-        return
-
-    data = get_data()
+        return None
 
     if not data or any(bit not in "01" for bit in data):
         print("Invalid input. Enter a non-empty binary string.")
+        return None
+
+    return data
+
+
+def decode_and_display(signal, encoding_name, original_data):
+    decoder = DECODERS.get(encoding_name.upper())
+
+    if decoder is None:
+        print("Decoder unavailable for this encoding.")
         return
 
-    print("\nDigital data:", data)
-    print("Longest palindrome:", find_longest_palindrome(data))
-
-    print("\nAvailable encoders:")
-    for name in encoders:
-        print("-", name)
-
-    encoding_name = input("Choose an encoder: ").strip().upper()
-    encoder = encoders.get(encoding_name)
-
-    if encoder is None:
-        print("Invalid encoder name.")
+    try:
+        decoded_data = decoder(signal)
+    except (ValueError, IndexError) as error:
+        print("Decoding failed:", error)
         return
+
+    print("\nDecoded digital data:", decoded_data)
+    print(
+        "Longest palindrome in decoded data:",
+        find_longest_palindrome(decoded_data),
+    )
+
+    if decoded_data == original_data:
+        print("Decoding verification: PASS")
+    else:
+        print("Decoding verification: MISMATCH")
+        print("Original data: ", original_data)
+        print("Decoded data:  ", decoded_data)
+
+
+def encode_and_plot(data):
+    print("\nAvailable line-coding schemes:")
+
+    for key, (name, _) in ENCODERS.items():
+        print(f"{key}. {name}")
+
+    choice = input("Choose an encoder: ").strip()
+
+    if choice not in ENCODERS:
+        print("Invalid encoder choice.")
+        return
+
+    encoding_name, encoder = ENCODERS[choice]
+
+    if choice == "5" and ask_yes_no(
+        "Do you want scrambling? (yes/no): "
+    ):
+        print("\nChoose scrambling:")
+
+        for key, (name, _) in SCRAMBLERS.items():
+            print(f"{key}. {name}")
+
+        scramble_choice = input("Choose scrambling: ").strip()
+
+        if scramble_choice not in SCRAMBLERS:
+            print("Invalid scrambling choice.")
+            return
+
+        encoding_name, encoder = SCRAMBLERS[scramble_choice]
 
     signal = encoder(data)
 
     print("\nSelected encoding:", encoding_name)
     print("Encoded signal:", signal)
 
-    plot_signal(signal, encoding_name + " Signal")
+    plot_signal(signal, f"{encoding_name} Signal")
+
+    if ask_yes_no("\nDo you want to decode the encoded signal? (yes/no): "):
+        decode_and_display(signal, encoding_name, data)
+
+
+def digital_workflow():
+    data = get_digital_data()
+
+    if data is None:
+        return
+
+    print("\nDigital data:", data)
+    print(
+        "Longest palindromic substring:",
+        find_longest_palindrome(data),
+    )
+
+    encode_and_plot(data)
+
+
+def analog_workflow():
+    print("\nEnter analog samples separated by commas.")
+    print("Example: 0.2, 0.7, 1.1, 0.6, 0.1")
+
+    raw_samples = input("Analog samples: ").strip()
+
+    try:
+        samples = [
+            float(value.strip())
+            for value in raw_samples.split(",")
+        ]
+
+        if not samples:
+            print("Enter at least one sample.")
+            return
+
+        step_size = float(input("Enter DM step size (e.g. 0.5): "))
+        initial_value = float(
+            input("Enter initial reference value (e.g. 0): ")
+        )
+
+        bits, encoder_staircase = delta_modulation_encode(
+            samples,
+            step_size=step_size,
+            initial_value=initial_value,
+        )
+
+        decoded_staircase = delta_modulation_decode(
+            bits,
+            step_size=step_size,
+            initial_value=initial_value,
+        )
+
+    except ValueError as error:
+        print("Invalid input:", error)
+        return
+
+    print("\nAnalog samples:", samples)
+    print("Delta Modulation bits:", bits)
+    print("Encoder staircase:", encoder_staircase)
+    print("Decoder staircase:", decoded_staircase)
+
+    plot_delta_modulation(samples, decoded_staircase)
+
+    if ask_yes_no("\nDo you want to line-encode these bits? (yes/no): "):
+        digital_data = "".join(str(bit) for bit in bits)
+
+        print("\nGenerated digital data:", digital_data)
+        print(
+            "Longest palindromic substring:",
+            find_longest_palindrome(digital_data),
+        )
+
+        encode_and_plot(digital_data)
+
+
+def main():
+    print("=" * 45)
+    print("DIGITAL SIGNAL ENCODER AND DECODER")
+    print("=" * 45)
+    print("1. Digital input")
+    print("2. Analog input (Delta Modulation)")
+
+    choice = input("Choose input type: ").strip()
+
+    workflows = {
+        "1": digital_workflow,
+        "2": analog_workflow,
+    }
+
+    workflow = workflows.get(choice)
+
+    if workflow is None:
+        print("Invalid option.")
+        return
+
+    workflow()
 
 
 if __name__ == "__main__":

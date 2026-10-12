@@ -1,20 +1,26 @@
-# from line_coding import encode_nrz_l
+
 import matplotlib.pyplot as plt
 
 
 def plot_signal(signal, title):
-    time = list(range(len(signal) + 1))
+    """Plot a digital line-coded signal using a step waveform."""
+    if not isinstance(signal, (list, tuple)) or not signal:
+        raise ValueError("Signal must be a non-empty list or tuple.")
 
-    # Repeat the last level so the waveform ends correctly.
-    levels = signal + [signal[-1]] if signal else []
+    if any(
+        isinstance(level, bool) or level not in (-1, 0, 1)
+        for level in signal
+    ):
+        raise ValueError("Signal levels must be -1, 0, or 1.")
+
+    time = list(range(len(signal) + 1))
+    levels = list(signal) + [signal[-1]]
 
     plt.figure(figsize=(10, 4))
-
     plt.step(time, levels, where="post")
     plt.xlabel("Signal interval")
     plt.ylabel("Voltage level")
     plt.title(title)
-
     plt.yticks([-1, 0, 1])
     plt.ylim(-1.5, 1.5)
     plt.grid(True)
@@ -22,8 +28,6 @@ def plot_signal(signal, title):
     plt.show()
 
 
-# if __name__ == "__main__":
-#     data = "0101"
-#     signal = encode_nrz_l(data)
-
-#     plot_signal(signal, "NRZ-L Encoding")
+if __name__ == "__main__":
+    test_signal = [1, 1, -1, 0, -1, 1]
+    plot_signal(test_signal, "Digital Signal Test")
