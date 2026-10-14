@@ -28,9 +28,9 @@ def encode_b8zs(data):
         if data[i:i + 8] == "00000000":
             p = last_pulse
             # 000 V B 0 V B; V has the same polarity as the previous pulse.
-            pattern = [0, 0, 0, p, -p, 0, p, -p]
+            pattern = [0, 0, 0, p, -p, 0, -p, p]
             signal.extend(pattern)
-            last_pulse = -p
+            last_pulse = pattern[-1]
             i += 8
         elif data[i] == "0":
             signal.append(0)
@@ -90,11 +90,11 @@ def decode_b8zs(signal):
     while i < len(signal):
         if i + 8 <= len(signal):
             p = last_pulse
-            pattern = [0, 0, 0, p, -p, 0, p, -p]
+            pattern = [0, 0, 0, p, -p, 0, -p, p]
 
             if signal[i:i + 8] == pattern:
                 result.extend("00000000")
-                last_pulse = -p
+                last_pulse = pattern[-1]
                 i += 8
                 continue
 
