@@ -4,20 +4,11 @@ import matplotlib.pyplot as plt
 
 
 def validate_modulation_parameters(step_size, initial_value):
-    """Validate the shared Delta Modulation parameters."""
-    if (
-        isinstance(step_size, bool)
-        or not isinstance(step_size, (int, float, np.number))
-        or not np.isfinite(step_size)
-        or step_size <= 0
-    ):
+    """Validate Delta Modulation parameters."""
+    if not np.isfinite(step_size) or step_size <= 0:
         raise ValueError("Step size must be a positive finite number.")
 
-    if (
-        isinstance(initial_value, bool)
-        or not isinstance(initial_value, (int, float, np.number))
-        or not np.isfinite(initial_value)
-    ):
+    if not np.isfinite(initial_value):
         raise ValueError("Initial value must be a finite number.")
 
 
@@ -63,21 +54,12 @@ def delta_modulation_encode(samples, step_size=0.5, initial_value=0.0):
 
 def delta_modulation_decode(bits, step_size=0.5, initial_value=0.0):
     """Reconstruct the staircase from Delta Modulation bits."""
-    if not isinstance(bits, (list, tuple, np.ndarray)):
-        raise ValueError("Bits must be a list, tuple, or NumPy array.")
-
-    bits = list(bits)
-
+    bits = list(bits) if isinstance(bits, (list, tuple, np.ndarray)) else None
     if not bits:
-        raise ValueError("Bits must not be empty.")
+        raise ValueError("Bits must be a non-empty sequence.")
 
-    if any(
-        isinstance(bit, bool)
-        or not isinstance(bit, (int, np.integer))
-        or bit not in (0, 1)
-        for bit in bits
-    ):
-        raise ValueError("Bits must contain only integer 0 and 1 values.")
+    if any(bit not in (0, 1) for bit in bits):
+        raise ValueError("Bits must contain only 0 and 1 values.")
 
     validate_modulation_parameters(step_size, initial_value)
 

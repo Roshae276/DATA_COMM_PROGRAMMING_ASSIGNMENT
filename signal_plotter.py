@@ -4,13 +4,10 @@ import matplotlib.pyplot as plt
 
 def plot_signal(signal, title):
     """Plot a digital line-coded signal using a step waveform."""
-    if not isinstance(signal, (list, tuple)) or not signal:
-        raise ValueError("Signal must be a non-empty list or tuple.")
+    if not signal:
+        raise ValueError("Signal must be a non-empty sequence.")
 
-    if any(
-        isinstance(level, bool) or level not in (-1, 0, 1)
-        for level in signal
-    ):
+    if any(level not in (-1, 0, 1) for level in signal):
         raise ValueError("Signal levels must be -1, 0, or 1.")
 
     time = list(range(len(signal) + 1))

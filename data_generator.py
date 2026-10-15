@@ -4,7 +4,7 @@ import random
 
 def generate_random_data(length):
     """Generate a random binary string of the requested positive length."""
-    if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
+    if not isinstance(length, int) or length <= 0:
         raise ValueError("Length must be a positive integer.")
 
     return "".join(str(random.randint(0, 1)) for _ in range(length))
@@ -12,14 +12,10 @@ def generate_random_data(length):
 
 def generate_data_with_zeros(length, zero_count):
     """Generate binary data containing a run of consecutive zeros."""
-    if isinstance(length, bool) or not isinstance(length, int) or length <= 0:
+    if not isinstance(length, int) or length <= 0:
         raise ValueError("Length must be a positive integer.")
 
-    if (
-        isinstance(zero_count, bool)
-        or not isinstance(zero_count, int)
-        or zero_count <= 0
-    ):
+    if not isinstance(zero_count, int) or zero_count <= 0:
         raise ValueError("Zero count must be a positive integer.")
 
     if zero_count > length:

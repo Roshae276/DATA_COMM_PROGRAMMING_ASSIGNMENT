@@ -10,13 +10,10 @@ from line_coding import (
 
 def validate_signal(signal):
     """Check that the signal contains valid line levels."""
-    if not isinstance(signal, (list, tuple)) or len(signal) == 0:
-        raise ValueError("Encoded signal must be a non-empty list or tuple.")
+    if not signal:
+        raise ValueError("Encoded signal must not be empty.")
 
-    if any(
-        isinstance(level, bool) or level not in (-1, 0, 1)
-        for level in signal
-    ):
+    if any(level not in (-1, 0, 1) for level in signal):
         raise ValueError("Signal levels must be -1, 0, or 1.")
 
 
@@ -34,7 +31,7 @@ def decode_nrz_i(signal, initial_level=-1):
     """NRZ-I: a level transition represents 1."""
     validate_signal(signal)
 
-    if isinstance(initial_level, bool) or initial_level not in (-1, 1):
+    if initial_level not in (-1, 1):
         raise ValueError("Initial level must be -1 or 1.")
 
     if any(level == 0 for level in signal):
@@ -79,7 +76,7 @@ def decode_differential_manchester(signal, initial_level=1):
     """
     validate_signal(signal)
 
-    if isinstance(initial_level, bool) or initial_level not in (-1, 1):
+    if initial_level not in (-1, 1):
         raise ValueError("Initial level must be -1 or 1.")
 
     if len(signal) % 2 != 0:
