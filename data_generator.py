@@ -30,36 +30,48 @@ def generate_data_with_zeros(length, zero_count):
     return "".join(data)
 
 
-def expand_from_center(data, left, right):
-    """Expand around a center and return the matching substring."""
-    while (
-        left >= 0
-        and right < len(data)
-        and data[left] == data[right]
-    ):
-        left -= 1
-        right += 1
-
-    return data[left + 1:right]
-
-
 def find_longest_palindrome(data):
-    """Find the longest contiguous palindromic substring."""
+    """
+    Find the longest contiguous palindromic substring in O(N) time
+    using Manacher's Algorithm.
+    """
     if not isinstance(data, str):
         raise ValueError("Data must be a string.")
 
-    longest = ""
+    if not data:
+        return ""
 
-    for i in range(len(data)):
-        odd = expand_from_center(data, i, i)
-        if len(odd) > len(longest):
-            longest = odd
+    # Transform string with delimiters and sentinels (^ and $) to avoid bounds checking
+    transformed = "^#" + "#".join(data) + "#$"
+    n = len(transformed)
+    p = [0] * n
+    center = 0
+    right = 0
 
-        even = expand_from_center(data, i, i + 1)
-        if len(even) > len(longest):
-            longest = even
+    max_len = 0
+    center_idx = 0
 
-    return longest
+    for i in range(1, n - 1):
+        i_mirror = 2 * center - i
+
+        if right > i:
+            p[i] = min(right - i, p[i_mirror])
+        else:
+            p[i] = 0
+
+        while transformed[i + 1 + p[i]] == transformed[i - 1 - p[i]]:
+            p[i] += 1
+
+        if i + p[i] > right:
+            center = i
+            right = i + p[i]
+
+        if p[i] > max_len:
+            max_len = p[i]
+            center_idx = i
+
+    start = (center_idx - max_len) // 2
+    return data[start:start + max_len]
 
 
 if __name__ == "__main__":
