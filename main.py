@@ -21,6 +21,7 @@ from scrambling import (
 )
 
 from signal_plotter import plot_signal
+from image_decoder import decode_signal_from_image
 
 from decoder import (
     decode_nrz_l,
@@ -119,29 +120,24 @@ def get_digital_data():
     return data
 
 
-def decode_and_display(signal, encoding_name, original_data):
-    decoder = DECODERS.get(encoding_name.upper())
-
-    if decoder is None:
-        print("Decoder unavailable for this encoding.")
-        return
-
+def decode_and_display(image_path, encoding_name, num_intervals, original_data):
+    print("\n[Extra Credit] Decoding signal by analyzing image waveform parameters...")
     try:
-        decoded_data = decoder(signal)
-    except (ValueError, IndexError) as error:
-        print("Decoding failed:", error)
+        decoded_data = decode_signal_from_image(image_path, encoding_name, num_intervals)
+    except Exception as error:
+        print("Image decoding failed:", error)
         return
 
-    print("\nDecoded digital data:", decoded_data)
+    print("Decoded digital data (from image):", decoded_data)
     print(
         "Longest palindrome in decoded data:",
         find_longest_palindrome(decoded_data),
     )
 
     if decoded_data == original_data:
-        print("Decoding verification: PASS")
+        print("Image decoding verification: PASS (Matched original data!)")
     else:
-        print("Decoding verification: MISMATCH")
+        print("Image decoding verification: MISMATCH")
         print("Original data: ", original_data)
         print("Decoded data:  ", decoded_data)
 
@@ -177,14 +173,16 @@ def encode_and_plot(data):
         encoding_name, encoder = SCRAMBLERS[scramble_choice]
 
     signal = encoder(data)
+    image_path = "encoded_signal.png"
 
     print("\nSelected encoding:", encoding_name)
     print("Encoded signal:", signal)
+    print(f"Waveform saved to '{image_path}' for visual analysis.")
 
-    plot_signal(signal, f"{encoding_name} Signal")
+    plot_signal(signal, f"{encoding_name} Signal", save_path=image_path)
 
     if ask_yes_no("\nDo you want to decode the encoded signal? (yes/no): "):
-        decode_and_display(signal, encoding_name, data)
+        decode_and_display(image_path, encoding_name, len(signal), data)
 
 
 def digital_workflow():
