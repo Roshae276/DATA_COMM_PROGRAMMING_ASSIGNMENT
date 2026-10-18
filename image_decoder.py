@@ -87,3 +87,25 @@ def decode_signal_from_image(image_path, encoding_name, num_intervals):
 
     levels = extract_levels_from_image(image_path, num_intervals)
     return decoder(levels)
+
+
+if __name__ == "__main__":
+    import os
+
+    print("=" * 50)
+    print("IMAGE WAVEFORM DECODER VERIFICATION")
+    print("=" * 50)
+
+    test_cases = [
+        ("test_images/nrz_l_sample.png", "NRZ-L", 6, "101101"),
+        ("test_images/manchester_sample.png", "Manchester", 12, "010011"),
+        ("test_images/ami_b8zs_sample.png", "B8ZS", 10, "1000000001"),
+    ]
+
+    for path, scheme, intervals, expected in test_cases:
+        if os.path.exists(path):
+            decoded = decode_signal_from_image(path, scheme, intervals)
+            status = "PASS" if decoded == expected else "FAIL"
+            print(f"[{status}] {scheme:12} -> Decoded: {decoded:12} Expected: {expected}")
+        else:
+            print(f"[SKIP] Test image not found: {path}")
