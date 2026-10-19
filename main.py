@@ -20,7 +20,7 @@ from scrambling import (
     decode_hdb3,
 )
 
-from signal_plotter import plot_signal
+from signal_plotter import plot_signal, plot_scrambling_comparison
 from image_decoder import decode_signal_from_image
 
 from decoder import (
@@ -155,6 +155,8 @@ def encode_and_plot(data):
         return
 
     encoding_name, encoder = ENCODERS[choice]
+    scrambling_active = False
+    ami_signal = None
 
     if choice == "5" and ask_yes_no(
         "Do you want scrambling? (yes/no): "
@@ -171,15 +173,31 @@ def encode_and_plot(data):
             return
 
         encoding_name, encoder = SCRAMBLERS[scramble_choice]
+        scrambling_active = True
+        ami_signal = encode_ami(data)
 
     signal = encoder(data)
     image_path = "encoded_signal.png"
 
-    print("\nSelected encoding:", encoding_name)
-    print("Encoded signal:", signal)
-    print(f"Waveform saved to '{image_path}' for visual analysis.")
+    if scrambling_active:
+        print(f"\nSelected encoding: AMI with {encoding_name} Scrambling")
+        print("Digital data stream given: ", data)
+        print("Original AMI signal:       ", ami_signal)
+        print(f"Scrambled signal ({encoding_name}): {signal}")
 
-    plot_signal(signal, f"{encoding_name} Signal", save_path=image_path)
+        comparison_path = "scrambled_comparison.png"
+        print(f"Comparison waveform saved to '{comparison_path}'.")
+        plot_scrambling_comparison(
+            ami_signal, signal, encoding_name, save_path=comparison_path, show_plot=True
+        )
+        # Save individual waveform for image decoding
+        plot_signal(signal, f"{encoding_name} Signal", save_path=image_path, show_plot=False)
+    else:
+        print("\nSelected encoding:", encoding_name)
+        print("Digital data stream given:", data)
+        print("Encoded signal:          ", signal)
+        print(f"Waveform saved to '{image_path}' for visual analysis.")
+        plot_signal(signal, f"{encoding_name} Signal", save_path=image_path)
 
     if ask_yes_no("\nDo you want to decode the encoded signal? (yes/no): "):
         decode_and_display(image_path, encoding_name, len(signal), data)
