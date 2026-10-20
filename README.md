@@ -15,7 +15,7 @@
 
 | Name | GitHub | Email |
 | :--- | :--- | :--- |
-| **Roshae** | [@Roshae276](https://github.com/Roshae276) | [roshae276@gmail.com](mailto:roshae276@gmail.com) |
+| **Roshni Dodani** | [@Roshae276](https://github.com/Roshae276) | [roshae276@gmail.com](mailto:roshae276@gmail.com) |
 | **Vansh Saini** | [@vanshsaini48](https://github.com/vanshsaini48) | [vansh.sainiwork@gmail.com](mailto:vansh.sainiwork@gmail.com) |
 | **Prateek Kumar Singh** | [@prateekumarsingh9939-beep](https://github.com/prateekumarsingh9939-beep) | [prateekumarsingh9939@gmail.com](mailto:prateekumarsingh9939@gmail.com) |
 
