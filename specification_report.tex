@@ -1,0 +1,140 @@
+\documentclass[8.5pt,a4paper]{article}
+
+% --- Page Geometry & Dimensions ---
+\usepackage[a4paper, top=0.85cm, bottom=0.85cm, left=1.1cm, right=1.1cm]{geometry}
+\usepackage{multicol}
+\setlength{\columnsep}{14pt}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{microtype}
+
+% --- Color Palette ---
+\definecolor{navy}{RGB}{18, 38, 92}
+\definecolor{accentblue}{RGB}{25, 85, 175}
+\definecolor{darkgray}{RGB}{40, 45, 55}
+\definecolor{subgray}{RGB}{80, 85, 95}
+
+% --- Hyperref Setup ---
+\hypersetup{
+    colorlinks=true,
+    linkcolor=navy,
+    citecolor=accentblue,
+    urlcolor=accentblue,
+    pdftitle={ITT 036 Specification Report - Digital Signal Encoder and Decoder},
+    pdfauthor={Roshae, Vansh Saini, Prateek Kumar Singh}
+}
+
+% --- Compact List Settings ---
+\setlist[itemize]{noitemsep, topsep=1.5pt, leftmargin=1.1em, itemsep=1.5pt}
+\setlist[enumerate]{noitemsep, topsep=1.5pt, leftmargin=1.1em, itemsep=1.5pt}
+
+% --- Section Formatting ---
+\titleformat{\section}{\fontsize{8.8pt}{10.2pt}\bfseries\color{navy}}{}{0em}{}[\vspace{-2pt}\color{accentblue}\rule{\linewidth}{0.5pt}\vspace{-3pt}]
+\titlespacing*{\section}{0pt}{3.5pt}{2.5pt}
+
+\pagestyle{empty}
+
+\begin{document}
+\fontsize{8.2pt}{9.8pt}\selectfont
+
+% --- Header Banner ---
+\begin{center}
+    {\fontsize{12pt}{14pt}\bfseries\color{navy} Digital Signal Encoder, Scrambler \& Decoder Specification Report}\\[1.5pt]
+    {\fontsize{8pt}{9.5pt}\bfseries\color{subgray} ITT 036: Data Communications --- Programming Assignment 1 \quad\textbar\quad Due: 21 October 2026}\\[2pt]
+    {\fontsize{7.8pt}{9.2pt}
+    \textbf{Team:} 
+    \href{https://github.com/Roshae276}{Roshae} (\href{mailto:roshae276@gmail.com}{roshae276@gmail.com}) \quad\textbar\quad
+    \href{https://github.com/vanshsaini48}{Vansh Saini} (\href{mailto:vansh.sainiwork@gmail.com}{vansh.sainiwork@gmail.com}) \quad\textbar\quad
+    \href{https://github.com/prateekumarsingh9939-beep}{Prateek Kumar Singh} (\href{mailto:prateekumarsingh9939@gmail.com}{prateek...})
+    }\\[1.5pt]
+    {\fontsize{7.8pt}{9.2pt}\textbf{Repository:} \href{https://github.com/Roshae276/DATA_COMM_PROGRAMMING_ASSIGNMENT}{\texttt{https://github.com/Roshae276/DATA\_COMM\_PROGRAMMING\_ASSIGNMENT}}}
+\end{center}
+\vspace{-8pt}
+
+\begin{multicols}{2}
+
+% --- 1. Project Overview & Architecture ---
+\section{1. System Overview \& Deliverables}
+The project delivers an end-to-end digital transmission pipeline in \textbf{Python 3.9+} fulfilling all baseline requirements and extra-credit specifications:
+\begin{itemize}
+    \item \textbf{Data Generator (\texttt{data\_generator.py}):} Generates pseudo-random binary sequences or streams seeded with forced subsequences ($4$ or $8$ consecutive zeros) for scrambling verification.
+    \item \textbf{Optimal Palindrome Finder:} Implements \textbf{Manacher's Algorithm} to detect the longest palindromic substring in the bitstream in optimal $\mathcal{O}(N)$ time.
+    \item \textbf{Line Encoders (\texttt{line\_coding.py}, \texttt{decoder.py}):} Full implementation of \textbf{NRZ-L}, \textbf{NRZ-I}, \textbf{Manchester} (IEEE 802.3), \textbf{Differential Manchester}, and \textbf{AMI} (with forward encoders and direct decoders).
+    \item \textbf{Scrambling Schemes (\texttt{scrambling.py}):} Features \textbf{B8ZS} ($0^8 \to 000VB0VB$) and \textbf{HDB3} ($0^4 \to 000V$ or $B00V$) with DC-balancing pulse logic and corresponding unscramblers.
+    \item \textbf{Delta Modulation (\texttt{modulation.py}):} Analog DM encoder and staircase decoder reconstructing continuous input signals using adaptive step size $\Delta$.
+    \item \textbf{Extra Credit Image Decoder (\texttt{image\_decoder.py}):} Reconstructs the digital stream by analyzing RGB pixel coordinates and midpoint voltage levels from exported PNG plots rather than direct raw data arrays.
+    \item \textbf{Signal Plotter \& CLI (\texttt{signal\_plotter.py}, \texttt{main.py}):} Interactive menu, step waveform rendering, and dual-panel un-scrambled vs.\ scrambled waveform comparisons.
+\end{itemize}
+
+% --- 2. Key Engineering Assumptions ---
+\section{2. Key Assumptions \& Standards}
+\begin{itemize}
+    \item \textbf{NRZ-L:} Bit $0 \to +1\text{V}$, Bit $1 \to -1\text{V}$ (standard positive logic).
+    \item \textbf{NRZ-I:} Transition at bit boundary for $1$; no transition for $0$. Default starting reference level is $-1\text{V}$.
+    \item \textbf{Manchester (IEEE 802.3):} Bit $0 \to [+1, -1]$, Bit $1 \to [-1, +1]$.
+    \item \textbf{Diff.\ Manchester:} Transition at start of bit for $0$; no start transition for $1$. Constant mid-bit transition provides clock synchronization.
+    \item \textbf{AMI:} Bit $0 \to 0\text{V}$; Bit $1$ pulses alternate polarity between $+1\text{V}$ and $-1\text{V}$.
+    \item \textbf{B8ZS Rule:} Pattern $0^8 \to [0, 0, 0, p, -p, 0, -p, p]$, where pulse $p$ matches the polarity of the preceding non-zero pulse.
+    \item \textbf{HDB3 Rule:} Pattern $0^4 \to 000V$ if odd number of $1$s occurred since last replacement; $B00V$ if even (pulse $B$ ensures DC balance).
+    \item \textbf{Delta Modulation:} Quantization step $\Delta$ and reference are configured at runtime; bit $1 \to +\Delta$, bit $0 \to -\Delta$.
+    \item \textbf{Image Decoder:} Plot rendered at 100 DPI with solid blue signal (\texttt{\#0000FF}). Signal level is recovered by vertical center-point column scanning against baseline.
+\end{itemize}
+
+\vfill\null
+\columnbreak
+
+% --- 3. Complexity Table ---
+\section{3. Algorithmic Complexity}
+Meets competitive coding standards; eliminates redundant loops and branch chains:
+\vspace{1.5pt}
+
+\noindent
+\begin{tabularx}{\linewidth}{@{} l c X @{}}
+\toprule
+\textbf{Component} & \textbf{Time / Space} & \textbf{Key Technique / Implementation} \\
+\midrule
+Palindrome Search & $\mathcal{O}(N)$ / $\mathcal{O}(N)$ & Manacher's Algorithm with sentinels \\
+Line Encoders/Decoders & $\mathcal{O}(N)$ / $\mathcal{O}(N)$ & Single-pass linear symbol mapping \\
+B8ZS / HDB3 Scramblers & $\mathcal{O}(N)$ / $\mathcal{O}(N)$ & Lookahead pattern substitution \\
+B8ZS / HDB3 Decoders & $\mathcal{O}(N)$ / $\mathcal{O}(N)$ & Linear violation sequence scanner \\
+Delta Modulation & $\mathcal{O}(N)$ / $\mathcal{O}(N)$ & Single-pass step accumulator \\
+Image Waveform Decoder & $\mathcal{O}(W\!\times\! H)$ & 2D pixel array column threshold scan \\
+\bottomrule
+\end{tabularx}
+\vspace{2.5pt}
+
+% --- 4. How to Run ---
+\section{4. How to Run the Code}
+\begin{enumerate}
+    \item \textbf{Clone Repo:} \href{https://github.com/Roshae276/DATA_COMM_PROGRAMMING_ASSIGNMENT}{\texttt{git clone}} (see repository link in header above).
+    \item \textbf{Install Dependencies:} \texttt{pip install -r requirements.txt}\\
+    \textit{Core libraries:} \href{https://numpy.org/}{NumPy}, \href{https://matplotlib.org/}{Matplotlib}, \href{https://pillow.readthedocs.io/}{Pillow (PIL)}. No MATLAB required.
+    \item \textbf{Run Application:} \texttt{python main.py}
+    \item \textbf{Interactive Workflow:} Select \textbf{1} for Digital Input (Line coding, palindrome detection, AMI scrambling, waveform plot, and extra-credit image decoding) or \textbf{2} for Analog Delta Modulation (staircase signal output).
+    \item \textbf{Standalone Image Decoder Test:} \texttt{python image\_decoder.py}
+\end{enumerate}
+
+% --- 5. References & Documentation Links ---
+\section{5. References \& External Sources}
+\begin{enumerate}
+    \item B.~A. Forouzan, \textit{Data Communications and Networking}, 5th ed., McGraw-Hill, 2013 (Ch.~4: Digital Transmission; Ch.~5: Analog Transmission).
+    \item W. Stallings, \textit{Data and Computer Communications}, 10th ed., Pearson, 2013.
+    \item G. Manacher, \textquotedblleft A new linear-time algorithm for finding the smallest initial palindrome of a string,\textquotedblright\ \textit{J. ACM}, vol.~22, no.~3, pp.~346--351, 1975.
+    \item \href{https://www.geeksforgeeks.org/manachers-algorithm-linear-time-longest-palindromic-substring-part-1/}{GeeksforGeeks: Manacher's Algorithm (Linear-Time Longest Palindrome)}.
+    \item \href{https://en.wikipedia.org/wiki/Bipolar_encoding}{Wikipedia: Bipolar Encoding \& Scrambling (B8ZS and HDB3)}.
+    \item \href{https://en.wikipedia.org/wiki/Delta_modulation}{Wikipedia: Delta Modulation Principles \& Quantization Noise}.
+    \item \href{https://docs.python.org/3/library/random.html}{Python \texttt{random} Module} \quad\textbar\quad \href{https://numpy.org/doc/stable/}{NumPy} \quad\textbar\quad \href{https://matplotlib.org/stable/}{Matplotlib} \quad\textbar\quad \href{https://pillow.readthedocs.io/}{Pillow}.
+\end{enumerate}
+
+% --- 6. Declarations & Academic Integrity ---
+\section{6. Declarations \& Academic Integrity}
+\textbf{AI Tools Acknowledgment:} In compliance with course policy, the team declares the initial use of AI tools for scaffolding and exploration. All generated code was rigorously reviewed, debugged (notably correcting B8ZS polarity reversal edge-cases), optimized to $\mathcal{O}(N)$ using Manacher's Algorithm, and manually assembled by the team members.
+
+\end{multicols}
+
+\end{document}
