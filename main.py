@@ -3,6 +3,7 @@ from data_generator import (
     generate_random_data,
     generate_data_with_zeros,
     find_longest_palindrome,
+    find_longest_zero_sequence,
 )
 
 from line_coding import (
@@ -74,6 +75,44 @@ def ask_yes_no(prompt):
         print("Please enter yes or no.")
 
 
+def _make_data_generators():
+    """
+    Build a dispatch table for data source options.
+    Keys are the menu option strings; values are zero-argument callables
+    that return the binary string (after prompting for length if needed).
+    """
+
+    def _with_length(zero_count=None):
+        try:
+            length = int(input("Enter sequence length: "))
+        except ValueError:
+            print("Please enter a valid integer length.")
+            return None
+
+        if length <= 0:
+            print("Length must be positive.")
+            return None
+
+        if zero_count is None:
+            return generate_random_data(length)
+
+        if length < zero_count:
+            print(f"Length must be at least {zero_count}.")
+            return None
+
+        return generate_data_with_zeros(length, zero_count)
+
+    return {
+        "1": lambda: _with_length(None),
+        "2": lambda: _with_length(4),
+        "3": lambda: _with_length(8),
+        "4": lambda: input("Enter binary data: ").strip(),
+    }
+
+
+_DATA_GENERATORS = _make_data_generators()
+
+
 def get_digital_data():
     print("\nChoose digital data source:")
     print("1. Generate random data")
@@ -82,35 +121,15 @@ def get_digital_data():
     print("4. Enter binary data manually")
 
     choice = input("Choose an option: ").strip()
+    generator = _DATA_GENERATORS.get(choice)
 
-    if choice == "4":
-        data = input("Enter binary data: ").strip()
-
-    elif choice in ("1", "2", "3"):
-        try:
-            length = int(input("Enter sequence length: "))
-
-            if length <= 0:
-                print("Length must be positive.")
-                return None
-
-            if choice == "1":
-                data = generate_random_data(length)
-            else:
-                zero_count = 4 if choice == "2" else 8
-
-                if length < zero_count:
-                    print(f"Length must be at least {zero_count}.")
-                    return None
-
-                data = generate_data_with_zeros(length, zero_count)
-
-        except ValueError:
-            print("Please enter a valid integer length.")
-            return None
-
-    else:
+    if generator is None:
         print("Invalid option.")
+        return None
+
+    data = generator()
+
+    if data is None:
         return None
 
     if not data or any(bit not in "01" for bit in data):
@@ -190,7 +209,6 @@ def encode_and_plot(data):
         plot_scrambling_comparison(
             ami_signal, signal, encoding_name, save_path=comparison_path, show_plot=True
         )
-        # Save individual waveform for image decoding
         plot_signal(signal, f"{encoding_name} Signal", save_path=image_path, show_plot=False)
     else:
         print("\nSelected encoding:", encoding_name)
@@ -209,11 +227,16 @@ def digital_workflow():
     if data is None:
         return
 
+    start, zlen = find_longest_zero_sequence(data)
+
     print("\nDigital data:", data)
     print(
         "Longest palindromic substring:",
         find_longest_palindrome(data),
     )
+
+    if zlen > 0:
+        print(f"Longest zero run: length={zlen}, starting at index {start}")
 
     encode_and_plot(data)
 

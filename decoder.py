@@ -12,7 +12,6 @@ def validate_signal(signal):
     """Check that the signal contains valid line levels."""
     if not signal:
         raise ValueError("Encoded signal must not be empty.")
-
     if any(level not in (-1, 0, 1) for level in signal):
         raise ValueError("Signal levels must be -1, 0, or 1.")
 
@@ -24,7 +23,9 @@ def decode_nrz_l(signal):
     if any(level == 0 for level in signal):
         raise ValueError("NRZ-L signal cannot contain zero levels.")
 
-    return "".join("0" if level == 1 else "1" for level in signal)
+    # direct lookup instead of conditional
+    _nrz_l_inv = {1: "0", -1: "1"}
+    return "".join(_nrz_l_inv[level] for level in signal)
 
 
 def decode_nrz_i(signal, initial_level=-1):
@@ -47,6 +48,13 @@ def decode_nrz_i(signal, initial_level=-1):
     return "".join(bits)
 
 
+# Manchester decoding: map (first_half, second_half) -> bit
+_MANCHESTER_DECODE = {
+    (1, -1): "0",
+    (-1, 1): "1",
+}
+
+
 def decode_manchester(signal):
     """Decode Manchester pairs using the project's encoding convention."""
     validate_signal(signal)
@@ -55,16 +63,12 @@ def decode_manchester(signal):
         raise ValueError("Manchester signal must have an even number of levels.")
 
     bits = []
-
     for i in range(0, len(signal), 2):
-        pair = tuple(signal[i:i + 2])
-
-        if pair == (1, -1):
-            bits.append("0")
-        elif pair == (-1, 1):
-            bits.append("1")
-        else:
+        pair = (signal[i], signal[i + 1])
+        bit = _MANCHESTER_DECODE.get(pair)
+        if bit is None:
             raise ValueError("Invalid Manchester signal pair.")
+        bits.append(bit)
 
     return "".join(bits)
 
@@ -96,11 +100,8 @@ def decode_differential_manchester(signal, initial_level=1):
                 "Invalid Differential Manchester mid-bit transition."
             )
 
-        if first_half != previous_level:
-            bits.append("0")
-        else:
-            bits.append("1")
-
+        # transition at bit-start -> 0, no transition -> 1
+        bits.append("0" if first_half != previous_level else "1")
         previous_level = second_half
 
     return "".join(bits)
@@ -121,7 +122,6 @@ def decode_ami(signal):
                 raise ValueError(
                     "Invalid AMI signal: consecutive pulses must alternate polarity."
                 )
-
             bits.append("1")
             last_pulse = level
 

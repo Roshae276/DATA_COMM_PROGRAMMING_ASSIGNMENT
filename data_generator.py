@@ -30,6 +30,33 @@ def generate_data_with_zeros(length, zero_count):
     return "".join(data)
 
 
+def find_longest_zero_sequence(data):
+    """
+    Find the start index and length of the longest contiguous run of zeros
+    in O(N) time and O(1) auxiliary space using a simple sliding counter.
+    Returns (start, length) of the best run, or (0, 0) if none found.
+    """
+    if not isinstance(data, str):
+        raise ValueError("Data must be a binary string.")
+
+    best_start = 0
+    best_len = 0
+    run_start = 0
+    run_len = 0
+
+    for i, bit in enumerate(data):
+        if bit == "0":
+            run_len += 1
+            if run_len > best_len:
+                best_len = run_len
+                best_start = run_start
+        else:
+            run_start = i + 1
+            run_len = 0
+
+    return best_start, best_len
+
+
 def find_longest_palindrome(data):
     """
     Find the longest contiguous palindromic substring in O(N) time
@@ -79,6 +106,9 @@ if __name__ == "__main__":
 
     print("Digital data:")
     print(data)
+
+    start, length = find_longest_zero_sequence(data)
+    print(f"Longest zero run: length={length}, starting at index {start}")
 
     print("Longest palindrome:")
     print(find_longest_palindrome(data))

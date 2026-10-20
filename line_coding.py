@@ -3,15 +3,18 @@ def validate_binary_data(data):
     """Validate that input is a non-empty binary string."""
     if not isinstance(data, str) or not data:
         raise ValueError("Data must be a non-empty binary string.")
-
     if any(bit not in "01" for bit in data):
         raise ValueError("Data must contain only 0 and 1.")
+
+
+# NRZ-L: 0 -> +1V, 1 -> -1V
+_NRZ_L_MAP = {"0": 1, "1": -1}
 
 
 def encode_nrz_l(data):
     """NRZ-L: 0 -> +1, 1 -> -1."""
     validate_binary_data(data)
-    return [1 if bit == "0" else -1 for bit in data]
+    return [_NRZ_L_MAP[bit] for bit in data]
 
 
 def encode_nrz_i(data, initial_level=-1):
@@ -25,26 +28,23 @@ def encode_nrz_i(data, initial_level=-1):
     current_level = initial_level
 
     for bit in data:
-        if bit == "1":
-            current_level = -current_level
-
+        # multiply by -1 on '1', keep unchanged on '0'
+        current_level *= (-1) ** int(bit)
         signal.append(current_level)
 
     return signal
 
 
+# Manchester (IEEE 802.3): 0 -> [+1, -1], 1 -> [-1, +1]
+_MANCHESTER_MAP = {"0": [1, -1], "1": [-1, 1]}
+
+
 def encode_manchester(data):
     """Manchester: 0 -> [+1, -1], 1 -> [-1, +1]."""
     validate_binary_data(data)
-
     signal = []
-
     for bit in data:
-        if bit == "0":
-            signal.extend([1, -1])
-        else:
-            signal.extend([-1, 1])
-
+        signal.extend(_MANCHESTER_MAP[bit])
     return signal
 
 
@@ -63,11 +63,10 @@ def encode_differential_manchester(data, initial_level=1):
     current_level = initial_level
 
     for bit in data:
-        if bit == "0":
-            current_level = -current_level
-
+        # flip at bit-start for 0; no flip for 1
+        current_level *= (-1) ** (1 - int(bit))
         signal.append(current_level)
-
+        # always flip at mid-bit
         current_level = -current_level
         signal.append(current_level)
 

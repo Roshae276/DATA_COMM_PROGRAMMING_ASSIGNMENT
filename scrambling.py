@@ -13,6 +13,15 @@ def validate_signal(signal):
         raise ValueError("Signal levels must be -1, 0, or 1.")
 
 
+# ─── B8ZS ────────────────────────────────────────────────────────────────────
+# Maps last pulse polarity -> 8-symbol substitution [000 V B 0 V B]
+# where V (violation) has the same polarity as the previous pulse.
+_B8ZS_SUB = {
+     1: [0, 0, 0,  1, -1, 0, -1,  1],
+    -1: [0, 0, 0, -1,  1, 0,  1, -1],
+}
+
+
 def encode_b8zs(data):
     """AMI with B8ZS substitution for each run of eight zeros."""
     validate_binary_data(data)
@@ -23,9 +32,7 @@ def encode_b8zs(data):
 
     while i < len(data):
         if data[i:i + 8] == "00000000":
-            p = last_pulse
-            # 000 V B 0 V B; V has the same polarity as the previous pulse.
-            pattern = [0, 0, 0, p, -p, 0, -p, p]
+            pattern = _B8ZS_SUB[last_pulse]
             signal.extend(pattern)
             last_pulse = pattern[-1]
             i += 8
@@ -40,6 +47,18 @@ def encode_b8zs(data):
     return signal
 
 
+# ─── HDB3 ────────────────────────────────────────────────────────────────────
+# Maps (pulse_count_is_odd, last_pulse) -> 4-symbol substitution
+# odd count  -> 000V (violation only, no balance pulse needed)
+# even count -> B00V (balance pulse + violation, same polarity)
+_HDB3_SUB = {
+    (True,   1): [0,  0, 0,  1],
+    (True,  -1): [0,  0, 0, -1],
+    (False,  1): [-1, 0, 0, -1],
+    (False, -1): [ 1, 0, 0,  1],
+}
+
+
 def encode_hdb3(data):
     """AMI with HDB3 substitution for each run of four zeros."""
     validate_binary_data(data)
@@ -51,16 +70,7 @@ def encode_hdb3(data):
 
     while i < len(data):
         if data[i:i + 4] == "0000":
-            if pulse_count % 2 == 1:
-                # Odd number of nonzero pulses since the previous substitution.
-                pattern = [0, 0, 0, last_pulse]  # 000V
-            else:
-                # Even count: balancing pulse and violation have equal polarity.
-                balancing_pulse = -last_pulse
-                pattern = [
-                    balancing_pulse, 0, 0, balancing_pulse
-                ]  # B00V
-
+            pattern = _HDB3_SUB[(pulse_count % 2 == 1, last_pulse)]
             signal.extend(pattern)
             last_pulse = pattern[-1]
             pulse_count = 0
@@ -77,6 +87,8 @@ def encode_hdb3(data):
     return signal
 
 
+# ─── B8ZS Decoder ────────────────────────────────────────────────────────────
+
 def decode_b8zs(signal):
     validate_signal(signal)
 
@@ -86,17 +98,14 @@ def decode_b8zs(signal):
 
     while i < len(signal):
         if i + 8 <= len(signal):
-            p = last_pulse
-            pattern = [0, 0, 0, p, -p, 0, -p, p]
-
-            if signal[i:i + 8] == pattern:
+            expected = _B8ZS_SUB[last_pulse]
+            if signal[i:i + 8] == expected:
                 result.extend("00000000")
-                last_pulse = pattern[-1]
+                last_pulse = expected[-1]
                 i += 8
                 continue
 
         level = signal[i]
-
         if level == 0:
             result.append("0")
         else:
@@ -110,6 +119,8 @@ def decode_b8zs(signal):
     return "".join(result)
 
 
+# ─── HDB3 Decoder ────────────────────────────────────────────────────────────
+
 def decode_hdb3(signal):
     validate_signal(signal)
 
@@ -122,26 +133,17 @@ def decode_hdb3(signal):
         if i + 4 <= len(signal):
             chunk = signal[i:i + 4]
 
-            # 000V: violation pulse repeats the previous pulse polarity.
-            if (
-                chunk[:3] == [0, 0, 0]
-                and chunk[3] != 0
-                and chunk[3] == last_pulse
-            ):
+            # 000V pattern: first three are zeros, fourth repeats last pulse
+            if chunk[:3] == [0, 0, 0] and chunk[3] != 0 and chunk[3] == last_pulse:
                 result.extend("0000")
                 last_pulse = chunk[3]
                 pulse_count = 0
                 i += 4
                 continue
 
-            # B00V: B and V have equal polarity, opposite to the previous pulse.
-            if (
-                chunk[0] != 0
-                and chunk[1:3] == [0, 0]
-                and chunk[3] == chunk[0]
-                and chunk[0] == -last_pulse
-                and pulse_count % 2 == 0
-            ):
+            # B00V pattern: lookup confirms it matches the even-count substitution
+            expected_b00v = _HDB3_SUB[(False, last_pulse)]
+            if chunk == expected_b00v and pulse_count % 2 == 0:
                 result.extend("0000")
                 last_pulse = chunk[3]
                 pulse_count = 0
@@ -149,7 +151,6 @@ def decode_hdb3(signal):
                 continue
 
         level = signal[i]
-
         if level == 0:
             result.append("0")
         else:
